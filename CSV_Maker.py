@@ -16,6 +16,7 @@ DEM = r'D:\GIS\UCRB\workingGDB.gdb\BigAssDEM'
 EVCa = r'D:\GIS\UCRB\workingGDB.gdb\EVC_ProjectRaster'
 EVHa = r'D:\GIS\UCRB\workingGDB.gdb\EVH_ProjectRaster'
 HLNa = r'D:\GIS\UCRB\workingGDB.gdb\HLR'
+ASPa = r'D:\GIS\UCRB\workingGDB.gdb\Aspect_BigAssDEM'
 FCOutput = FeatureClass+"PT"
 workspace = r'D:\GIS\UCRB\workingGDB.gdb'
 Spatial_Ref = arcpy.Describe(FeatureClass).spatialReference
@@ -48,25 +49,43 @@ def GetHLN (x, y):
     return HLN
 
 
+def GetASP (x, y):
+    ASP = arcpy.GetCellValue_management(ASPa, x+' '+y,"1")
+    ASP = str(ASP)
+    ASP = float(ASP)
+    return ASP
+
+
 #Fields for the CSV file and writer object creation
-Fields = ['PermID','x', 'y','z','order', 'slope','EVC','EVH','HLN']
+Fields = ['PermID', 'FType','x', 'y','z','order', 'slope', 'aspect','EVC','EVH','HLN']
 
 wtr = csv.writer(open("D:\TestCSV.csv", "wb"))
 wtr.writerow(Fields)
+shitlist = []
 
 rows = arcpy.SearchCursor(FCOutput)
 for row in rows:
-     PermID = row.getValue("Permanent_Identifier")
-     x = str(row.getValue("POINT_X"))
-     y = str(row.getValue("POINT_Y"))
-     z = GetElev(x, y)
-     StreamOrder = row.getValue("StreamOrde")
-     slope = row.getValue("avgSlope")
-     EVC = GetEVC(x, y)
-     EVH = GetEVH(x, y)
-     HLN = GetHLN(x, y)
-     RowLine = [PermID, x, y, z, StreamOrder, slope, EVC, EVH, HLN]
-     wtr.writerow(RowLine)
-     del row
+    try:
+         PermID = row.getValue("Permanent_Identifier")
+         Ftype = row.getValue("FType")
+         x = str(row.getValue("POINT_X"))
+         y = str(row.getValue("POINT_Y"))
+         z = GetElev(x, y)
+         StreamOrder = row.getValue("StreamOrde")
+         slope = row.getValue("avgSlope")
+         aspect = GetASP(x, y)
+         EVC = GetEVC(x, y)
+         EVH = GetEVH(x, y)
+         HLN = GetHLN(x, y)
+         RowLine = [PermID, Ftype, x, y, z, StreamOrder, slope, aspect, EVC, EVH, HLN]
+         wtr.writerow(RowLine)
+         del row
+    except:
+        shitlist.append([x, y])
+        print "Something wrong at "+x+", "+y+". Here, have a traceback:"
+        traceback.print_exc()
+        del row
+        continue
 del rows
 del wtr
+print shitlist
