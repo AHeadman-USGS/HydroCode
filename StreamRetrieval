@@ -1,0 +1,18 @@
+## Stream pull dataset from the csv file.
+## the goal being to pull out the specific site data in rdb format and convert to csv.
+## Unfortunately most of this work will probably get done at home because the python on
+## my work computer is severely lacking.
+## Stream gauges will be used to create a training dataset for the model and a QC dataset.
+## Per USGS National, don't use this until after 12am EST.  
+
+import os
+import urllib
+import urllib2
+import csv
+
+csvsites = open(path\\to\\input\\CSV) 
+sitelist = csv.DictReader(sites)
+
+for site in sitelist:
+  SiteNum = csv.SiteNum(value)
+  urllib.urlretrieve('http://waterservices.usgs.gov/nwis/stat/?format=rdb&sites=0'+sitenum+'&parameterCd=00060','path\\to\\output\\')
