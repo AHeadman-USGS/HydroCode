@@ -3,13 +3,14 @@
 # EVC, EVH, and (eventually), EVT are Landfire datasets (%cover, height and type), rasters are reprojected and 
 # exported in arcGIS. I use NAD83.
 # HLN is the number for the hydrologic landscape number.  Dataset available through USGS, read the metadata for details.
-# Stream order is currently part of the NHDPlus dataset. 
+# Upstream Sq KM is currently part of the NHDPlus dataset. 
 # avgSlope is the slope over the length of the streamline.  ((MaxZ-MinZ)/L)
 # Currently this utilizes NHD Medium Resolution data, if exploratory analysis proves to be fruitful it will be modified
 # for NHD HiRes.
 
 import arcpy
 import csv
+import traceback
 
 FeatureClass =r'D:\GIS\UCRB\workingGDB.gdb\NHD1406_data'
 DEM = r'D:\GIS\UCRB\workingGDB.gdb\BigAssDEM'
@@ -48,7 +49,6 @@ def GetHLN (x, y):
     HLN = int(HLN)
     return HLN
 
-
 def GetASP (x, y):
     ASP = arcpy.GetCellValue_management(ASPa, x+' '+y,"1")
     ASP = str(ASP)
@@ -57,7 +57,7 @@ def GetASP (x, y):
 
 
 #Fields for the CSV file and writer object creation
-Fields = ['PermID', 'FType','x', 'y','z','order', 'slope', 'aspect','EVC','EVH','HLN']
+Fields = ['PermID', 'FType','x', 'y','z','UpStream', 'slope', 'aspect','EVC','EVH','HLN']
 
 wtr = csv.writer(open("D:\TestCSV.csv", "wb"))
 wtr.writerow(Fields)
@@ -71,13 +71,13 @@ for row in rows:
          x = str(row.getValue("POINT_X"))
          y = str(row.getValue("POINT_Y"))
          z = GetElev(x, y)
-         StreamOrder = row.getValue("StreamOrde")
+         Upstream = row.getValue("DIVDASQKM_12")
          slope = row.getValue("avgSlope")
          aspect = GetASP(x, y)
          EVC = GetEVC(x, y)
          EVH = GetEVH(x, y)
          HLN = GetHLN(x, y)
-         RowLine = [PermID, Ftype, x, y, z, StreamOrder, slope, aspect, EVC, EVH, HLN]
+         RowLine = [PermID, Ftype, x, y, z, Upstream, slope, aspect, EVC, EVH, HLN]
          wtr.writerow(RowLine)
          del row
     except:
