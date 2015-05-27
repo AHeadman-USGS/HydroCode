@@ -1,6 +1,6 @@
-# csv export of pertantent data for discriminent analysis.  
+# csv export of pertantent data for discriminent analysis and regression analysis.  
 # Working with CSV files makes life easier when working with R, or Excel.
-# EVC, EVH, and (eventually), EVT are Landfire datasets (%cover, height and type), rasters are reprojected and 
+# EVC, EVH, and EVT are Landfire datasets (%cover, height and type), rasters are reprojected and 
 # exported in arcGIS. I use NAD83.
 # HLN is the number for the hydrologic landscape number.  Dataset available through USGS, read the metadata for details.
 # Upstream Sq KM is currently part of the NHDPlus dataset. 
@@ -13,11 +13,11 @@ import csv
 import traceback
 
 FeatureClass =r'D:\GIS\UCRB\workingGDB.gdb\NHD1406_data'
-DEM = r'D:\GIS\UCRB\workingGDB.gdb\BigAssDEM'
+DEM = r'D:\GIS\UCRB\workingGDB.gdb\DEMvFive'
 EVCa = r'D:\GIS\UCRB\workingGDB.gdb\EVC_ProjectRaster'
 EVHa = r'D:\GIS\UCRB\workingGDB.gdb\EVH_ProjectRaster'
 HLNa = r'D:\GIS\UCRB\workingGDB.gdb\HLR'
-ASPa = r'D:\GIS\UCRB\workingGDB.gdb\Aspect_BigAssDEM'
+ASPa = r'D:\GIS\UCRB\workingGDB.gdb\Aspect_DEMvFive'
 FCOutput = FeatureClass+"PT"
 workspace = r'D:\GIS\UCRB\workingGDB.gdb'
 Spatial_Ref = arcpy.Describe(FeatureClass).spatialReference
@@ -49,6 +49,11 @@ def GetHLN (x, y):
     HLN = int(HLN)
     return HLN
 
+def GetEVT (x, y):
+    EVT = arcpy.GetCellValue_management(EVTa, x+' '+y, "1")
+    EVT = str(EVT)
+    EVT = int(EVT)
+
 def GetASP (x, y):
     ASP = arcpy.GetCellValue_management(ASPa, x+' '+y,"1")
     ASP = str(ASP)
@@ -57,11 +62,11 @@ def GetASP (x, y):
 
 
 #Fields for the CSV file and writer object creation
-Fields = ['PermID', 'FType','x', 'y','z','UpStream', 'slope', 'aspect','EVC','EVH','HLN']
+Fields = ['PermID', 'FType','x', 'y','z','UpStream', 'slope', 'aspect','EVC','EVH','EVT','HLN']
 
 wtr = csv.writer(open("D:\TestCSV.csv", "wb"))
 wtr.writerow(Fields)
-shitlist = []
+BrokenThings = []
 
 rows = arcpy.SearchCursor(FCOutput)
 for row in rows:
@@ -81,11 +86,11 @@ for row in rows:
          wtr.writerow(RowLine)
          del row
     except:
-        shitlist.append([x, y])
+        BrokenThings.append([x, y])
         print "Something wrong at "+x+", "+y+". Here, have a traceback:"
         traceback.print_exc()
         del row
         continue
 del rows
 del wtr
-print shitlist
+print BrokenThings
