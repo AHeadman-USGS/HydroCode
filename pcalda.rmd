@@ -1,0 +1,123 @@
+---
+title: "Principal Components Analysis (PCA) and Linear Discriminant Analysis (LDA)"
+output: html_document
+---
+
+
+```{r, echo=FALSE}
+require(MASS)
+require(ggplot2)
+require(scales)
+require(gridExtra)
+require(caret)
+require(ggbiplot)
+
+## Calculate the annual average PET
+
+calcPEThamon <- function(N,Tave, nrow,ncol) { 
+  #Calculate esat
+  esat <- matrix(NA,nrow,ncol)
+  esat[!is.na(N)] <- 6.108*exp(17.27*Tave[!is.na(N)]/(Tave[!is.na(N)]+237.3))
+  #Calculate PET
+  PET <- matrix(NA,nrow,ncol)
+  PET[!is.na(N)] <- 0.1651*216.7*(N[!is.na(N)]/12)*(esat[!is.na(N)]/(Tave[!is.na(N)]+273.3))
+  
+  return(PET*365.25)
+}
+
+## Calculate and output the confusion matrix for LDA.  Requires lda(..., ..., CV=TRUE).
+
+confusion <- function(actual, predicted, names = NULL, printit = TRUE, prior = NULL) {
+  if (is.null(names))
+    names <- levels(actual)
+  tab <- table(actual, predicted)
+  acctab <- t(apply(tab, 1, function(x) x/sum(x)))
+  dimnames(acctab) <- list(Actual = names, "Predicted (cv)" = names)
+  if (is.null(prior)) {
+    relnum <- table(actual)
+    prior <- relnum/sum(relnum)
+    acc <- sum(tab[row(tab) == col(tab)])/sum(tab)
+  }
+  else {
+    acc <- sum(prior * diag(acctab))
+    names(prior) <- names
+  }
+  if (printit)
+    print(round(c("Overall accuracy" = acc, "Prior frequency" = prior),
+                4))
+  if (printit) {
+    cat("\nConfusion matrix", "\n")
+    print(round(acctab, 4))
+  }
+  invisible(acctab)
+}
+```
+
+```{r}
+## Transforms, scales and centers the dataset.
+setwd("C:/Users/AHeadman/Desktop/UCRBStreamFlow/rSpace")
+gage = read.csv("Gage-clean.csv")
+gage.trans = preProcess(gage[2:25], c("BoxCox", "center", "scale"))
+gage.trans.df = data.frame(gage.trans = predict(gage.trans, gage[2:25]))
+gage.df = data.frame(c(gage[1], gage.trans.df))
+
+## Performs PCA and LDA.  The PCA plot should appear random the more variables
+## considered in the set (more dimensions), however, some grouping should be seen.
+
+##Perform the PCA
+pca = prcomp(gage.df[,-1], center = TRUE, scale. = TRUE) 
+prop.pca = pca$sdev^2/sum(pca$sdev^2)
+
+## Perform the LDA
+lda = lda(Type ~ gage.trans.z+gage.trans.JanP+gage.trans.MarP+gage.trans.MayP+gage.trans.SeptP+gage.trans.JulP+gage.trans.PET, data = gage.df, prior = c(1,1,1)/3, CV=TRUE)
+lda.conf = confusion(gage.df$Type, lda$class, prior = c(1,1,1)/3)
+lda = lda(Type ~ gage.trans.z+gage.trans.JanP+gage.trans.MarP+gage.trans.MayP+gage.trans.SeptP+gage.trans.JulP+gage.trans.PET, data = gage.df, prior = c(1,1,1)/3, CV=FALSE)
+prop.lda = lda$svd^2/sum(lda$svd^2)
+
+
+## Currently a recursive predictor, it doesn't actually predict anything, it just applies the LDA equation on 
+## the existing data
+## This is currently a validation/investigative step.  The newdata variable can be changed to a different  
+## dataset without the grouping variable.
+plda = predict(object = lda, newdata = gage.df)
+
+##Attaches the PCA and LDA coefficients to a dataframe for graphing.
+
+dataset = data.frame(Type = gage.df[,"Type"], pca = pca$x, lda = plda$x)
+```
+
+Summary of the Coefficeints from PCA and LDA
+
+```{r, echo=FALSE}
+
+print(summary(pca))
+print("PCA Axis 1")
+pca$rotation[,1]
+print("PCA Axis 2")
+pca$rotation[,2]
+print("PCA Axis 3")
+pca$rotation[,3]
+print("PCA Axis 4")
+pca$rotation[,4]
+print("PCA Axis 5")
+pca$rotation[,5]
+print("PCA Axis 6")
+pca$rotation[,6]
+print(lda)
+print(lda.conf)
+
+```
+
+
+Plots from the analysis.
+
+```{r, echo=FALSE}
+p1 = ggplot(dataset) + geom_point(aes(lda.LD1, lda.LD2, colour = Type, shape = Type), size = 1.5) + 
+  labs(x = paste("LD1 (", percent(prop.lda[1]), ")", sep=""),
+       y = paste("LD2 (", percent(prop.lda[2]), ")", sep=""))
+
+p2 = ggbiplot(pca, obs.scale =1, var.scale=1, groups = gage.df$Type, ellipse = TRUE)
+
+p1
+p2
+```
