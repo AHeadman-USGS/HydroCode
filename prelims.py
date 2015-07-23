@@ -71,136 +71,148 @@ arcpy.AddXY_management(FCOutput)
 # arcpy.ConvertCoordinateNotation_management(FCOutput, FCOutputUTM, "X", "Y", "DD_2", "UTM")
 rows = arcpy.SearchCursor(FCOutput)             #Change to FCOuputUTM if applicable
 for row in rows:
-    x = str(row.getValue("POINT_X"))
-    y = str(row.getValue("POINT_Y"))
-    #UTMPass = row.getValue("UTM")
-    #UTMCoord = UTMPass[4:]
-    StreamOrder = row.getValue("ST_ORDER")
-    PermID = row.getValue("PERMANENT_IDENTIFIER")
-    FCode = row.getValue("FCode")
-    DEMValuePassA = arcpy.GetCellValue_management(DEM, x+' '+y,"1")   #Change to UTMCoord if applicable
-    DEMValuePassB = str(DEMValuePassA)
-    DEMValue = float(DEMValuePassB)
-    ValBotPassA = arcpy.GetCellValue_management(ValBot, x+' '+y,"1")
-    ValBotPassB = str(ValBotPassA)
-    if ValBotPassB == 'NoData':
-        ValBotValue = ValBotPassB
-    else:
-        ValBotValue = int(ValBotPassB)
-    RipDataPassA = arcpy.GetCellValue_management(Rip60, x+' '+y,"1")
-    RipDataPassB = str(RipDataPassA)
-    if RipDataPassB == 'NoData':
-        RipValue = 0.0
-    else:
-        RipValue = float(RipDataPassB)
-    GNIS = row.getValue("NHDFlowline_GNIS_Name")
-    if GNIS is not None:
-        GN = 1
-    else:
-        GNIS = row.getValue("NHDFlowline_GNIS_Name_1")
+    try:
+        x = str(row.getValue("POINT_X"))
+        y = str(row.getValue("POINT_Y"))
+        #UTMPass = row.getValue("UTM")
+        #UTMCoord = UTMPass[4:]
+        StreamOrder = row.getValue("ST_ORDER")
+        PermID = row.getValue("PERMANENT_IDENTIFIER")
+        FCode = row.getValue("FCode")
+        DEMValuePassA = arcpy.GetCellValue_management(DEM, x+' '+y,"1")   #Change to UTMCoord if applicable
+        DEMValuePassB = str(DEMValuePassA)
+        if DEMValuePassB == 'NoData':
+            DEMValue = 0.0
+        else:
+            DEMValue = float(DEMValuePassB)
+        ValBotPassA = arcpy.GetCellValue_management(ValBot, x+' '+y,"1")
+        ValBotPassB = str(ValBotPassA)
+        if ValBotPassB == 'NoData':
+            ValBotValue = ValBotPassB
+        else:
+            ValBotValue = int(ValBotPassB)
+        RipDataPassA = arcpy.GetCellValue_management(Rip60, x+' '+y,"1")
+        RipDataPassB = str(RipDataPassA)
+        if RipDataPassB == 'NoData':
+            RipValue = 0.0
+        else:
+            RipValue = float(RipDataPassB)
+        GNIS = row.getValue("GNIS_Name")
         if GNIS is not None:
             GN = 1
         else:
             GN = 0
-    erom = row.getValue("EROMJanCFS")
+        #erom = row.getValue("EROM")
 
 
-# The following results from DEMValue are based on Natural Breaks (Jenks optimization) in the 10m DEM.
-    if ValBotValue == 1:
-        if StreamOrder > 2:
-            PernPts(x, y, DEMValue, PermID, GN)
-        else:
-            EphmPts(x, y, DEMValue, PermID, GN)
-    if FCode == 46006:
-        if StreamOrder > 1:
-            PernPts(x, y, DEMValue, PermID, GN)
-        else:
-            EphmPts(x, y, DEMValue, PermID, GN)
-    if FCode == 46007:
-        EphmPts(x, y, DEMValue, PermID, GN)
-    if erom is not None and erom > 10:
-        PernPts(x, y, DEMValue, PermID, GN)
-    else:
-        if DEMValue >= 2010:
-            if StreamOrder >= 3:
-                if RipValue > 0.275:
-                    PernPts(x, y, DEMValue, PermID, GN)
-                else:
-                    IntmPts(x, y, DEMValue, PermID, GN)
-            if StreamOrder == 2:
-               if RipValue >= 0.6:
-                    PernPts(x, y, DEMValue, PermID, GN)
-               if RipValue > 0.4 and RipValue < 0.6:
-                    IntmPts(x, y, DEMValue, PermID, GN)
-               else:
-                    EphmPts(x, y, DEMValue, PermID, GN)
-            if StreamOrder < 2:
-                EphmPts(x, y, DEMValue, PermID, GN)
-        if DEMValue < 2010 and DEMValue >= 1642:
-            if StreamOrder > 5:
+    # The following results from DEMValue are based on Natural Breaks (Jenks optimization) in the 10m DEM.
+        if ValBotValue == 1:
+            if StreamOrder > 1:
                 PernPts(x, y, DEMValue, PermID, GN)
-            if StreamOrder == 4 or StreamOrder == 5:
-                if RipValue > 0.275:
-                    PernPts(x, y, DEMValue, PermID, GN)
-                else:
-                    IntmPts(x, y, DEMValue, PermID, GN)
-            if StreamOrder == 3:
-                IntmPts(x, y, DEMValue, PermID, GN)
-                if RipValue >= 0.6:
-                    PernPts(x, y, DEMValue, PermID, GN)
-                if RipValue > 0.4 and RipValue < 0.6:
-                    IntmPts(x, y, DEMValue, PermID, GN)
-                else:
-                    EphmPts(x, y, DEMValue, PermID, GN)
-            if StreamOrder < 3:
-                EphmPts(x, y, DEMValue, PermID, GN)
-
-        if DEMValue < 1642 and DEMValue >= 1462:
-            if StreamOrder > 5:
-                PernPts(x, y, DEMValue, PermID, GN)
-            if StreamOrder == 5:
-                if RipValue > 0.275:
-                    PernPts(x, y, DEMValue, PermID, GN)
-                else:
-                    IntmPts(x, y, DEMValue, PermID, GN)
-            if StreamOrder == 4:
-                if RipValue >= 0.6:
-                    PernPts(x, y, DEMValue, PermID, GN)
-                if RipValue > 0.275 and RipValue < 0.6:
-                    IntmPts(x, y, DEMValue, PermID, GN)
-                else:
-                    EphmPts(x, y, DEMValue, PermID, GN)
-            if StreamOrder == 3:
-                if RipValue > 0.275:
-                    IntmPts(x, y, DEMValue, PermID, GN)
-                else:
-                    EphmPts(x, y, DEMValue, PermID, GN)
-            if StreamOrder < 3:
-                EphmPts(x, y, DEMValue, PermID, GN)
-
-
-        if DEMValue < 1462:
-            if StreamOrder > 6:
-                PernPts(x, y, DEMValue, PermID, GN)
-            if StreamOrder == 6:
-                if RipValue >= 0.275:
-                    PernPts(x, y, DEMValue, PermID, GN)
-                else:
-                    IntmPts(x, y, DEMValue, PermID, GN)
-
-            if StreamOrder == 5:
-                if RipValue == 0:
-                    EphmPts(x, y, DEMValue, PermID, GN)
-                else:
-                    IntmPts(x, y, DEMValue, PermID, GN)
-
-            if StreamOrder < 5 and StreamOrder >= 3:
-                if RipValue > 0.275:
-                     IntmPts(x, y, DEMValue, PermID, GN)
-                else:
-                    EphmPts(x, y, DEMValue, PermID, GN)
             else:
                 EphmPts(x, y, DEMValue, PermID, GN)
+        if FCode == 46006:
+            if StreamOrder > 1:
+                PernPts(x, y, DEMValue, PermID, GN)
+            else:
+                EphmPts(x, y, DEMValue, PermID, GN)
+        if FCode == 46007:
+            EphmPts(x, y, DEMValue, PermID, GN)
+        #if erom is not None and erom > 10:
+        #    PernPts(x, y, DEMValue, PermID, GN)
+        else:
+            if DEMValue >= 2500:
+                if StreamOrder >= 3:
+                    if RipValue > 0.6:
+                        PernPts(x, y, DEMValue, PermID, GN)
+                    else:
+                        IntmPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder < 3:
+                    IntmPts(x, y, DEMValue, PermID, GN)
+            if DEMValue < 2500 and DEMValue >= 2010:
+                if StreamOrder >= 3:
+                    if RipValue > 0.275:
+                        PernPts(x, y, DEMValue, PermID, GN)
+                    else:
+                        IntmPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder == 2:
+                   if RipValue >= 0.6:
+                        PernPts(x, y, DEMValue, PermID, GN)
+                   if RipValue > 0.4 and RipValue < 0.6:
+                        IntmPts(x, y, DEMValue, PermID, GN)
+                   else:
+                        EphmPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder < 2:
+                    EphmPts(x, y, DEMValue, PermID, GN)
+            if DEMValue < 2010 and DEMValue >= 1642:
+                if StreamOrder > 5:
+                    PernPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder == 4 or StreamOrder == 5:
+                    if RipValue > 0.275:
+                        PernPts(x, y, DEMValue, PermID, GN)
+                    else:
+                        IntmPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder == 3:
+                    if RipValue >= 0.6:
+                        PernPts(x, y, DEMValue, PermID, GN)
+                    if RipValue > 0.4 and RipValue < 0.6:
+                        IntmPts(x, y, DEMValue, PermID, GN)
+                    else:
+                        EphmPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder < 3:
+                    EphmPts(x, y, DEMValue, PermID, GN)
+
+            if DEMValue < 1642 and DEMValue >= 1462:
+                if StreamOrder > 5:
+                    PernPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder == 5:
+                    if RipValue > 0.275:
+                        PernPts(x, y, DEMValue, PermID, GN)
+                    else:
+                        IntmPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder == 4:
+                    if RipValue >= 0.6:
+                        PernPts(x, y, DEMValue, PermID, GN)
+                    if RipValue > 0.275 and RipValue < 0.6:
+                        IntmPts(x, y, DEMValue, PermID, GN)
+                    else:
+                        EphmPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder == 3:
+                    if RipValue > 0.275:
+                        IntmPts(x, y, DEMValue, PermID, GN)
+                    else:
+                        EphmPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder < 3:
+                    EphmPts(x, y, DEMValue, PermID, GN)
+
+
+            if DEMValue < 1462:
+                if StreamOrder > 6:
+                    PernPts(x, y, DEMValue, PermID, GN)
+                if StreamOrder == 6:
+                    if RipValue >= 0.275:
+                        PernPts(x, y, DEMValue, PermID, GN)
+                    else:
+                        IntmPts(x, y, DEMValue, PermID, GN)
+
+                if StreamOrder == 5:
+                    if RipValue == 0:
+                        EphmPts(x, y, DEMValue, PermID, GN)
+                    else:
+                        IntmPts(x, y, DEMValue, PermID, GN)
+
+                if StreamOrder < 5 and StreamOrder >= 3:
+                    if RipValue > 0.275:
+                         IntmPts(x, y, DEMValue, PermID, GN)
+                    else:
+                        EphmPts(x, y, DEMValue, PermID, GN)
+                else:
+                    EphmPts(x, y, DEMValue, PermID, GN)
+    except:
+        print "Slight problem at "+x+", "+y
+        traceback.print_exc()
+        del row
+        continue
     del row
 del rows
 
